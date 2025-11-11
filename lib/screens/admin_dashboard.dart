@@ -28,8 +28,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         isLoading = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error fetching users: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error fetching users: $e")));
       setState(() => isLoading = false);
     }
   }
@@ -37,20 +38,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Future<void> _deleteUser(String id) async {
     try {
       await ApiService.deleteUser(id);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("User deleted")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User deleted")));
       _fetchUsers();
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error deleting user: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error deleting user: $e")));
     }
   }
 
   Future<void> _showUserDialog({Map<String, dynamic>? existingUser}) async {
-    final firstNameController = TextEditingController(text: existingUser?['firstName'] ?? '');
-    final lastNameController = TextEditingController(text: existingUser?['lastName'] ?? '');
-    final usernameController = TextEditingController(text: existingUser?['username'] ?? '');
-    final emailController = TextEditingController(text: existingUser?['email'] ?? '');
+    final firstNameController = TextEditingController(
+      text: existingUser?['firstName'] ?? '',
+    );
+    final lastNameController = TextEditingController(
+      text: existingUser?['lastName'] ?? '',
+    );
+    final usernameController = TextEditingController(
+      text: existingUser?['username'] ?? '',
+    );
+    final emailController = TextEditingController(
+      text: existingUser?['email'] ?? '',
+    );
     final passwordController = TextEditingController();
     String role = existingUser?['role'] ?? 'user';
 
@@ -63,10 +74,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: firstNameController, decoration: const InputDecoration(labelText: "First Name")),
-                TextField(controller: lastNameController, decoration: const InputDecoration(labelText: "Last Name")),
-                TextField(controller: usernameController, decoration: const InputDecoration(labelText: "Username")),
-                TextField(controller: emailController, decoration: const InputDecoration(labelText: "Email")),
+                TextField(
+                  controller: firstNameController,
+                  decoration: const InputDecoration(labelText: "First Name"),
+                ),
+                TextField(
+                  controller: lastNameController,
+                  decoration: const InputDecoration(labelText: "Last Name"),
+                ),
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(labelText: "Username"),
+                ),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(labelText: "Email"),
+                ),
                 if (existingUser == null)
                   TextField(
                     controller: passwordController,
@@ -76,9 +99,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: role,
-                  items: ['admin', 'dealer', 'distributor', 'technician', 'user']
-                      .map((r) => DropdownMenuItem(value: r, child: Text(r.toUpperCase())))
-                      .toList(),
+                  items:
+                      ['admin', 'dealer', 'distributor', 'technician', 'user']
+                          .map(
+                            (r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r.toUpperCase()),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (val) => role = val!,
                   decoration: const InputDecoration(labelText: "Role"),
                 ),
@@ -86,38 +115,53 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
             ElevatedButton(
               onPressed: () async {
+                if (firstNameController.text.trim().isEmpty ||
+                    emailController.text.trim().isEmpty ||
+                    usernameController.text.trim().isEmpty ||
+                    (existingUser == null &&
+                        passwordController.text.trim().isEmpty)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("⚠️ Please fill all required fields"),
+                    ),
+                  );
+                  return;
+                }
+
                 try {
+                  final userData = {
+                    "firstName": firstNameController.text.trim(),
+                    "lastName": lastNameController.text.trim(),
+                    "username": usernameController.text.trim(),
+                    "email": emailController.text.trim(),
+                    "role": role,
+                  };
+
                   if (existingUser == null) {
-                    await ApiService.addUser({
-                      "firstName": firstNameController.text.trim(),
-                      "lastName": lastNameController.text.trim(),
-                      "username": usernameController.text.trim(),
-                      "email": emailController.text.trim(),
-                      "password": passwordController.text.trim(),
-                      "role": role,
-                    });
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text("✅ User added")));
+                    userData["hash_password"] = passwordController.text.trim();
+                    await ApiService.addUser(userData);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("✅ User added")),
+                    );
                   } else {
-                    await ApiService.updateUser(existingUser['_id'], {
-                      "firstName": firstNameController.text.trim(),
-                      "lastName": lastNameController.text.trim(),
-                      "username": usernameController.text.trim(),
-                      "email": emailController.text.trim(),
-                      "role": role,
-                    });
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text("✅ User updated")));
+                    await ApiService.updateUser(existingUser['_id'], userData);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("✅ User updated")),
+                    );
                   }
 
                   Navigator.pop(context);
                   _fetchUsers();
                 } catch (e) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text("⚠️ Error: $e")));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("⚠️ Error: $e")));
                 }
               },
               child: Text(existingUser == null ? "Add" : "Update"),
@@ -157,7 +201,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 itemBuilder: (context, index) {
                   final user = users[index];
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     child: ListTile(
                       title: Text("${user['firstName']} ${user['lastName']}"),
                       subtitle: Text("${user['email']} • ${user['role']}"),
@@ -166,7 +213,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showUserDialog(existingUser: user),
+                            onPressed: () =>
+                                _showUserDialog(existingUser: user),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
